@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registration</title>
+    <link rel="stylesheet" href="css/style.css">
+     <link rel="icon" type="image/x-icon" href="fav.png">
+</head>
+<body>
+    <div class="container">
+        <div class="form-container">
+            <a href="index.html" class="back-link">← Back to Events</a>
+            <h2 id="event-title-heading" style="color: var(--text-main); margin-bottom: 0.5rem; font-size: 1.5rem; font-weight: 700;">Register for Event</h2>
+            <p class="subtitle" style="margin-bottom: 1.5rem;">Fill out your student details below.</p>
+
+            <div id="success-banner">Registration Successful! Redirecting...</div>
+
+            <form id="registration-form">
+                <!-- Hidden input to store eventId -->
+                <input type="hidden" id="eventId" name="eventId">
+
+                <div class="form-group">
+                    <label for="studentName">Full Name</label>
+                    <input type="text" id="studentName" placeholder="Enter your full name">
+                    <span id="name-error" class="error-msg"></span>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">College Email Address</label>
+                    <input type="email" id="email" placeholder="student@college.ac.in">
+                    <span id="email-error" class="error-msg"></span>
+                </div>
+
+                <div class="form-group">
+                    <label for="department">Department</label>
+                    <select id="department">
+                        <option value="">Select your department</option>
+                        <option value="CSE">Computer Science and Engineering (CSE)</option>
+                        <option value="IT">Information Technology (IT)</option>
+                        <option value="ECE">Electronics and Communication (ECE)</option>
+                        <option value="EEE">Electrical and Electronics (EEE)</option>
+                        <option value="Mechanical">Mechanical Engineering</option>
+                    </select>
+                    <span id="dept-error" class="error-msg"></span>
+                </div>
+
+                <button type="submit" class="submit-btn">Complete Registration</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Extract eventId and eventTitle from URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const eventId = urlParams.get('eventId');
+        const eventTitle = urlParams.get('eventTitle');
+
+        if (eventId) {
+            document.getElementById('eventId').value = eventId;
+        }
+        if (eventTitle) {
+            document.getElementById('event-title-heading').innerText = `Register: ${decodeURIComponent(eventTitle)}`;
+        }
+
+        // Client-side validation & form submission logic
+        const form = document.getElementById('registration-form');
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            document.getElementById('name-error').innerText = '';
+            document.getElementById('email-error').innerText = '';
+            document.getElementById('dept-error').innerText = '';
+
+            const studentName = document.getElementById('studentName').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const department = document.getElementById('department').value;
+
+            let isValid = true;
+
+            if (studentName === '') {
+                document.getElementById('name-error').innerText = 'Please enter your full name.';
+                isValid = false;
+            }
+
+            if (email === '' || !email.includes('@')) {
+                document.getElementById('email-error').innerText = 'Please enter a valid email address.';
+                isValid = false;
+            }
+
+            if (department === '') {
+                document.getElementById('dept-error').innerText = 'Please select your department.';
+                isValid = false;
+            }
+
+            if (!isValid) return;
+
+            try {
+                const response = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ eventId, studentName, email, department })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    document.getElementById('success-banner').style.display = 'block';
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 1500);
+                } else {
+                    alert(result.error || 'Registration failed.');
+                }
+            } catch (err) {
+                console.error('Submission error:', err);
+                alert('An error occurred while registering.');
+            }
+        });
+    </script>
+</body>
+</html>

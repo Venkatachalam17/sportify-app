@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" type="image/x-icon" href="fav.png">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div>
+                <h1>Admin Dashboard</h1>
+                <p class="subtitle">Filter student registrations by specific sports events.</p>
+            </div>
+            <div class="nav-actions">
+                <a href="index.html" class="btn-secondary">← Back to Home</a>
+            </div>
+        </header>
+
+        <!-- Event Filter Dropdown -->
+        <div class="filter-container">
+            <label for="eventFilter">Filter by Event:</label>
+            <select id="eventFilter">
+                <option value="ALL">All Events (Show Everyone)</option>
+            </select>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Student Name</th>
+                        <th>Email</th>
+                        <th>Department</th>
+                        <th>Registered Event</th>
+                        <th>Date Joined</th>
+                    </tr>
+                </thead>
+                <tbody id="registrations-table-body">
+                    <tr>
+                        <td colspan="5" style="text-align: center;">Loading data...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        let allRegistrations = [];
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const tbody = document.getElementById('registrations-table-body');
+            const eventFilter = document.getElementById('eventFilter');
+
+            try {
+                const [regRes, eventRes] = await Promise.all([
+                    fetch('/api/registrations'),
+                    fetch('/api/events')
+                ]);
+
+                allRegistrations = await regRes.json();
+                const events = await eventRes.json();
+
+                events.forEach(ev => {
+                    const option = document.createElement('option');
+                    option.value = ev._id;
+                    option.textContent = ev.title;
+                    eventFilter.appendChild(option);
+                });
+
+                renderTable(allRegistrations);
+
+                eventFilter.addEventListener('change', (e) => {
+                    const selectedEventId = e.target.value;
+                    if (selectedEventId === 'ALL') {
+                        renderTable(allRegistrations);
+                    } else {
+                        const filtered = allRegistrations.filter(reg => reg.eventId && reg.eventId._id === selectedEventId);
+                        renderTable(filtered);
+                    }
+                });
+
+            } catch (err) {
+                console.error('Error loading dashboard data:', err);
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #e63946;">Failed to load records.</td></tr>`;
+            }
+        });
+
+        function renderTable(data) {
+            const tbody = document.getElementById('registrations-table-body');
+
+            if (data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align: center;">No student registrations found for this filter.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = '';
+            data.forEach(reg => {
+                const tr = document.createElement('tr');
+                const dateObj = new Date(reg.registeredAt);
+                const dateStr = dateObj.toLocaleDateString('en-GB', { 
+                    day: '2-digit', 
+                    month: '2-digit', 
+                    year: 'numeric', 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                });
+                const eventTitle = reg.eventId && reg.eventId.title ? reg.eventId.title : 'Unknown Event';
+
+                tr.innerHTML = `
+                    <td><strong>${reg.studentName}</strong></td>
+                    <td>${reg.email}</td>
+                    <td>${reg.department}</td>
+                    <td style="color: var(--accent-peach); font-weight: 600;">${eventTitle}</td>
+                    <td>${dateStr}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+    </script>
+</body>
+</html>
